@@ -4,6 +4,7 @@ import asyncio
 import aiohttp
 from anyio.streams.memory import MemoryObjectReceiveStream, MemoryObjectSendStream
 from mcp import types
+from mcp.shared.message import SessionMessage
 
 from homeassistant.components import conversation
 from homeassistant.const import CONF_LLM_HASS_API
@@ -86,8 +87,11 @@ async def _connect_to_client(hass: HomeAssistant, entry: WsMCPServerConfigEntry)
                                 try:
                                     json_data = msg.json()
                                     message = types.JSONRPCMessage.model_validate(json_data)
-                                    _LOGGER.info("mcp reader: %s", message)
-                                    await read_stream_writer.send(message)
+                                    #_LOGGER.info("mcp reader: %s", message)
+                                    #await read_stream_writer.send(message)
+                                    session_message = SessionMessage(message)
+                                    _LOGGER.info("mcp reader: %s", session_message)
+                                    await read_stream_writer.send(session_message)
                                 except Exception as err:
                                     _LOGGER.error("mcp Invalid message from client: %s", err)
                             elif msg.type == aiohttp.WSMsgType.CLOSE:
@@ -97,9 +101,14 @@ async def _connect_to_client(hass: HomeAssistant, entry: WsMCPServerConfigEntry)
                         _LOGGER.info("websocket was closed")
                         tg.cancel_scope.cancel()  #立即取消任务组,避免50秒的心跳等待
                     async def ws_writer():
-                        async for message in write_stream_reader:
-                            _LOGGER.info("mcp writer: %s", message)
-                            await ws.send_str(message.model_dump_json(by_alias=True, exclude_none=True))
+                        #async for message in write_stream_reader:
+                        #    _LOGGER.info("mcp writer: %s", message)
+                        #    await ws.send_str(message.model_dump_json(by_alias=True, exclude_none=True))
+                        async for session_message in write_stream_reader:
+                            _LOGGER.info("mcp writer: %s", session_message)
+                            # 从 SessionMessage 中提取实际的 JSONRPCMessage
+                            actual_message = session_message.message
+                            await ws.send_str(actual_message.model_dump_json(by_alias=True, exclude_none=True))
                         _LOGGER.info("disconnect websocket")
                         nonlocal bReConnect
                         bReConnect = False
