@@ -12,6 +12,7 @@ import logging
 
 from anyio.streams.memory import MemoryObjectSendStream
 from mcp import types
+from mcp.shared.message import SessionMessage
 
 from homeassistant.util import ulid as ulid_util
 
@@ -22,7 +23,8 @@ _LOGGER = logging.getLogger(__name__)
 class Session:
     """A session for the Model Context Protocol."""
 
-    read_stream_writer: MemoryObjectSendStream[types.JSONRPCMessage | Exception]
+    #read_stream_writer: MemoryObjectSendStream[types.JSONRPCMessage | Exception]
+    read_stream_writer: MemoryObjectSendStream[SessionMessage | Exception]
 
 
 class SessionManager:
