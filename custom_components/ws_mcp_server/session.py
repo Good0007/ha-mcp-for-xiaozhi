@@ -23,7 +23,6 @@ _LOGGER = logging.getLogger(__name__)
 class Session:
     """A session for the Model Context Protocol."""
 
-    #read_stream_writer: MemoryObjectSendStream[types.JSONRPCMessage | Exception]
     read_stream_writer: MemoryObjectSendStream[SessionMessage | Exception]
 
 
@@ -37,6 +36,7 @@ class SessionManager:
     def __init__(self) -> None:
         """Initialize the SSE server transport."""
         self._sessions: dict[str, Session] = {}
+        self._stopping = False
 
     @asynccontextmanager
     async def create(self, session: Session) -> AsyncGenerator[str]:
@@ -57,7 +57,12 @@ class SessionManager:
 
     def close(self) -> None:
         """Close any open sessions."""
+        self._stopping = True
         for session in self._sessions.values():
             session.read_stream_writer.close()
         self._sessions.clear()
+    
+    def is_stopping(self) -> bool:
+        """Check if the session manager is stopping."""
+        return self._stopping
 
